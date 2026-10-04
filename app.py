@@ -1,5 +1,6 @@
 import streamlit as st
 from analyzer import JDRealityCheckAgent
+from resume_parser import extract_resume_text
 
 st.set_page_config(page_title="JD Reality-Check Agent", page_icon="🔎", layout="centered")
 
@@ -44,8 +45,31 @@ if not api_key:
 
 jd_text = st.text_area("Paste the Job Description", height=250, placeholder="Paste the full JD here...")
 
+resume_text = ""
 with st.expander("Optional: add your resume for a personalized fit-check"):
-    resume_text = st.text_area("Paste your resume text", height=200, placeholder="Paste your resume as plain text...")
+    input_mode = st.radio(
+        "How would you like to add your resume?",
+        ["Upload a file", "Paste text"],
+        horizontal=True,
+    )
+
+    if input_mode == "Upload a file":
+        uploaded_resume = st.file_uploader(
+            "Upload your resume (PDF, DOCX, or TXT)",
+            type=["pdf", "docx", "txt"],
+        )
+        if uploaded_resume is not None:
+            try:
+                resume_text = extract_resume_text(uploaded_resume)
+                st.success(f"Loaded {uploaded_resume.name} ({len(resume_text)} characters extracted)")
+                with st.expander("Preview extracted text"):
+                    st.text(resume_text[:1500] + ("..." if len(resume_text) > 1500 else ""))
+            except ValueError as e:
+                st.error(str(e))
+    else:
+        resume_text = st.text_area(
+            "Paste your resume text", height=200, placeholder="Paste your resume as plain text..."
+        )
 
 analyze_clicked = st.button("Analyze", type="primary", use_container_width=True)
 
